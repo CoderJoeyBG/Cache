@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Analytics Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #f0f2f5; }
+header { background: #4a90e2; color: white; padding: 1rem; text-align: center; }
+.container { max-width: 1200px; margin: 2rem auto; }
+.card { background: white; padding: 1rem; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); margin-bottom: 2rem; }
+table { width: 100%; border-collapse: collapse; }
+table th, table td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+table th { background: #f4f4f4; }
+</style>
+</head>
+<body>
+<header>
+<h1>Page Analytics Dashboard</h1>
+</header>
+<div class="container">
+  <div class="card">
+    <h2>Total Hits: <span id="total">0</span></h2>
+    <canvas id="hitsChart" height="100"></canvas>
+  </div>
+  <div class="card">
+    <h2>Visitor Details (Last 50)</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Time</th>
+          <th>Country</th>
+          <th>Device</th>
+          <th>OS</th>
+          <th>Browser</th>
+          <th>Referrer</th>
+        </tr>
+      </thead>
+      <tbody id="visits"></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+async function loadAnalytics() {
+  const res = await fetch("https://cache-tracker.mildredemailyeh.workers.dev/");
+  const data = await res.json();
+
+  document.getElementById("total").innerText = data.hits;
+
+  // Table
+  const tbody = document.getElementById("visits");
+  tbody.innerHTML = "";
+  data.visits.slice(0,50).forEach((v,i)=>{
+    const row = document.createElement("tr");
+    row.innerHTML = `<td>${i+1}</td>
+      <td>${new Date(v.timestamp).toLocaleString()}</td>
+      <td>${v.country}</td>
+      <td>${v.device}</td>
+      <td>${v.os}</td>
+      <td>${v.browser}</td>
+      <td>${v.referrer}</td>`;
+    tbody.appendChild(row);
+  });
+
+  // Chart (Hits per visit type)
+  const deviceCount = data.visits.reduce((acc,v)=>{
+    acc[v.device] = (acc[v.device]||0)+1;
+    return acc;
+  },{});
+  
+  new Chart(document.getElementById("hitsChart"),{
+    type:'bar',
+    data:{
+      labels:Object.keys(deviceCount),
+      datasets:[{
+        label:'Hits by Device',
+        data:Object.values(deviceCount),
+        backgroundColor:['#4a90e2','#50e3c2','#f5a623']
+      }]
+    },
+    options:{responsive:true, plugins:{legend:{display:false}}}
+  });
+}
+
+loadAnalytics();
+</script>
+</body>
+</html>
